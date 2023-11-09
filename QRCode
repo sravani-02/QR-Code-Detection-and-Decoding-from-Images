@@ -1,0 +1,55 @@
+pip install pyzbar
+
+pip install cvzone
+
+pip install opencv-python
+
+import cv2
+import numpy as np
+from pyzbar import pyzbar as bar
+import cvzone
+
+cap = cv2.VideoCapture(0)
+OUTPUT = []
+
+while 1:
+    # Capture video frames
+    ret, frame = cap.read()
+
+    # Check if the frame is successfully captured
+    if not ret:
+        print("Failed to capture frame. Exiting...")
+        break
+
+    # Decode all QR codes in the frame
+    result = bar.decode(frame)
+
+    # Iterate through all detected QR codes
+    for data in result:
+        OUTPUT.append(data.data)
+        print(f"QR Code Data: {data.data}")
+
+        # Extract the bounding box points of the QR code
+        rect_points = data.polygon
+        if len(rect_points) == 4:
+            pts = [(point.x, point.y) for point in rect_points]
+            pts = np.array(pts, dtype=int)  # Convert to NumPy array with dtype=int
+            pts = pts.reshape((-1, 1, 2))
+
+            # Draw a rectangle around the QR code on the frame
+            cv2.polylines(frame, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
+
+    cvzone.putTextRect(frame, 'QRCode Scanner', [190, 30], thickness=2, scale=2, border=2)
+
+    # Display the data from all detected QR codes
+    for i, data in enumerate(OUTPUT):
+        cvzone.putTextRect(frame, f'QR Code {i + 1}: {data}', [11, 400 + i * 50], thickness=4, scale=2, border=2)
+
+    OUTPUT = []
+
+    cv2.imshow('QRdetector', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
